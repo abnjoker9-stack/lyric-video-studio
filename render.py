@@ -527,10 +527,8 @@ def render_frame(args):
         return
 
     # Render with auto-fit font
-    # Find longest word across visible lines for size estimation
-    visible_words = [w['word'] for w_data in [] for w in []]  # placeholder
-    # Just use first line for font sizing
-    first_line = active_layers[0][1]
+    # Just use first active layer's line (tuple index 5 = line dict)
+    first_line = active_layers[0][5]
     draw_tmp = ImageDraw.Draw(img)
     font = fit_font_size([w['word'] for w in first_line['words']],
                          max_width=int(W * 0.85), draw=draw_tmp)
