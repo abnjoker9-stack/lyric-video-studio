@@ -12,7 +12,7 @@ on:
 jobs:
   render:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,24 +26,39 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg
-          python -m pip install --quiet Pillow
+          python -m pip install --quiet --upgrade Pillow
 
       - name: Download audio
         run: |
           mkdir -p assets
-          curl -L -s -o assets/song.mp3 "${{ github.event.inputs.audio_url }}"
+          curl -L -s --fail -o assets/song.mp3 "${{ github.event.inputs.audio_url }}"
           ls -lh assets/song.mp3
+          ffprobe -v error -show_entries format=duration assets/song.mp3
 
       - name: Download Persian font
         run: |
           mkdir -p assets
-          curl -L -s -o assets/Vazirmatn-Bold.ttf \
+          curl -L -s --fail -o assets/Vazirmatn-Bold.ttf \
             "https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Bold.ttf"
+          ls -lh assets/Vazirmatn-Bold.ttf
 
       - name: Render frames
         run: |
           mkdir -p frames
-          python render.py assets/song.mp3 lyrics.txt frames/
+          # Run with unbuffered output, capture full log
+          PYTHONUNBUFFERED=1 python -u render.py assets/song.mp3 lyrics.txt frames/ 2>&1 | tee render.log
+          echo "---"
+          echo "Frames rendered:"
+          ls frames/ | wc -l
+          du -sh frames/
+
+      - name: Upload render log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: render-log
+          path: render.log
+          retention-days: 3
 
       - name: Encode MP4
         run: |
@@ -52,6 +67,8 @@ jobs:
             -c:a aac -b:a 192k -shortest \
             -movflags +faststart \
             output.mp4
+          ls -lh output.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name output.mp4
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -63,4 +80,6 @@ jobs:
 
       - name: Cleanup frames (save space)
         if: always()
-        run: rm -rf frames
+        run: |
+          rm -rf frames
+          echo "Cleanup done"
