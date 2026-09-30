@@ -1,0 +1,66 @@
+name: Render Lyric Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      audio_url:
+        description: 'Audio source URL'
+        required: false
+        default: 'https://sv5.downloadyarbot.ir/IDM/Shayan_Yo_-_Sekte_-_OFFICIAL_TRACK.mp3'
+        type: string
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python -m pip install --quiet Pillow
+
+      - name: Download audio
+        run: |
+          mkdir -p assets
+          curl -L -s -o assets/song.mp3 "${{ github.event.inputs.audio_url }}"
+          ls -lh assets/song.mp3
+
+      - name: Download Persian font
+        run: |
+          mkdir -p assets
+          curl -L -s -o assets/Vazirmatn-Bold.ttf \
+            "https://github.com/rastikerdar/vazirmatn/raw/master/fonts/ttf/Vazirmatn-Bold.ttf"
+
+      - name: Render frames
+        run: |
+          mkdir -p frames
+          python render.py assets/song.mp3 lyrics.txt frames/
+
+      - name: Encode MP4
+        run: |
+          ffmpeg -y -framerate 30 -i 'frames/f%05d.jpg' -i assets/song.mp3 \
+            -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p \
+            -c:a aac -b:a 192k -shortest \
+            -movflags +faststart \
+            output.mp4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lyric-video
+          path: output.mp4
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Cleanup frames (save space)
+        if: always()
+        run: rm -rf frames
