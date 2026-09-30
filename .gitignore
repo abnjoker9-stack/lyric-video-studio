@@ -1,0 +1,6 @@
+frames/
+test_frames/
+output.mp4
+*.pyc
+__pycache__/
+.venv/
