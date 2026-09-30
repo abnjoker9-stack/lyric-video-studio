@@ -514,9 +514,10 @@ def render_frame(args):
             color = KICK_COLOR if w['is_kick'] else TEXT_COLOR
             glow = KICK_GLOW if w['is_kick'] else None
 
+            # Defer actual rendering — we collect (word, color, glow, alpha, scale, line, idx)
+            # and render after we've loaded a real font in the loop below.
             active_layers_data.append((w['word'], current_word_idx == i, w['is_kick']))
-            active_layers.append((render_word_on_layer(w['word'], None, color, glow, entry_alpha, scale),
-                                  line, i))
+            active_layers.append((w['word'], color, glow, entry_alpha, scale, line, i))
 
     # Choose font size to fit the line
     if not active_layers:
@@ -537,13 +538,9 @@ def render_frame(args):
     # Composite each word with proper font and positioning
     composite = img.convert('RGBA')
 
-    for layer_img, line, word_idx in active_layers:
+    for word, color, glow, entry_alpha, scale, line, word_idx in active_layers:
         w_info = line['words'][word_idx]
-        # Re-render with correct font
-        color = KICK_COLOR if w_info['is_kick'] else TEXT_COLOR
-        glow = KICK_GLOW if w_info['is_kick'] else None
-
-        # Recompute alpha/scale for current frame
+        # Recompute alpha/scale for current frame (already computed above but kept for safety)
         entry_t = (t - w_info['start']) / (WORD_FADE_IN_FRAMES / FPS)
         if entry_t < 0:
             entry_alpha = 0.0
