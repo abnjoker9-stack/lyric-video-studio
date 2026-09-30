@@ -1,6 +1,12 @@
+# Kinetic Typography Lyric Video — Shayan Yo - Sekte
+
 frames/
 test_frames/
 output.mp4
 *.pyc
 __pycache__/
 .venv/
+assets/song.mp3
+timing.json
+render_test.py
+*.zip

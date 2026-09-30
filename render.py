@@ -534,7 +534,7 @@ def render_frame(args):
     font = fit_font_size([w['word'] for w in first_line['words']],
                          max_width=int(W * 0.85), draw=draw_tmp)
 
-    # Now composite each word with proper font and positioning
+    # Composite each word with proper font and positioning
     composite = img.convert('RGBA')
 
     for layer_img, line, word_idx in active_layers:
@@ -591,8 +591,10 @@ def render_frame(args):
             word_x += word_widths[k][0] + spacing
         word_y = y_center - max_th // 2
 
-        composite = Image.alpha_composite(composite, word_layer)
-        # Crop/position via paste
+        # Paste word layer onto composite at calculated position.
+        # word_layer is a small RGBA image with padding; we paste it so the
+        # text bbox lines up at (word_x, word_y). Padding of 80px around the
+        # word in the layer handles glow/shadow that extends past the bbox.
         composite.paste(word_layer, (word_x - 80, word_y - 80), word_layer)
 
     img = composite.convert('RGB')
